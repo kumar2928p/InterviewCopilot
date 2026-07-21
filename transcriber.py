@@ -32,13 +32,18 @@ class AudioTranscriber:
 
     def get_loopback_mic(self):
         try:
-            mics = sc.all_microphones(include_loopback=True)
-            for mic in mics:
-                if str(mic.name).find("Loopback") != -1 or mic.isloopback:
-                    return mic
-            return sc.default_microphone()
+            # 🌟 MOST RELIABLE METHOD: Get the loopback of the active default speaker
+            speaker = sc.default_speaker()
+            return sc.get_microphone(id=speaker.id, include_loopback=True)
         except Exception as e:
-            return sc.default_microphone()
+            try:
+                mics = sc.all_microphones(include_loopback=True)
+                for mic in mics:
+                    if str(mic.name).find("Loopback") != -1 or getattr(mic, 'isloopback', False):
+                        return mic
+                return sc.default_microphone()
+            except:
+                return sc.default_microphone()
             
     def listen_continuous(self, callback):
         from vosk import KaldiRecognizer
@@ -54,10 +59,10 @@ class AudioTranscriber:
                     data = recorder.record(numframes=4000) # 0.25 seconds
                     mono_data = data.mean(axis=1)
                     
-                    # Performance Layer: Silence detection to reduce CPU
+                    # Performance Layer: Lower silence threshold to ensure quiet voices aren't cut off
                     volume = np.max(np.abs(mono_data))
-                    if volume < 0.005:
-                        continue # Skip sending silent frames to speech recognition
+                    if volume < 0.0005:
+                        continue 
                         
                     pcm_data = (mono_data * 32767).astype(np.int16).tobytes()
                     

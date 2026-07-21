@@ -4,3 +4,6 @@ model/
 model.zip
 __pycache__/
 *.pyc
+model_high_accuracy/
+vosk-model-en-us-0.22-lgraph/
+test_*.py
