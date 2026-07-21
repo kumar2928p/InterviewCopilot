@@ -81,12 +81,22 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
         """
     
     try:
-        if "Gemini" in engine and "OpenRouter" not in engine:
-            if not gemini_api_key:
-                return "Error: No GEMINI_API_KEY found in .env file."
+        gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
+        openrouter_api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        
+        # Smart Routing: OpenRouter models always have a slash (e.g., 'google/gemini-flash', 'openai/gpt-4o')
+        is_openrouter = "/" in engine
+        
+        if not is_openrouter:
+            # Fallback: if they pasted their Google key into the single API box, grab whichever is available
+            api_key = gemini_api_key or openrouter_api_key
+            if not api_key:
+                return "Error: No API Key provided in Settings."
+                
             try:
-                model_name = 'gemini-3.1-pro-preview' if 'Pro' in engine else 'gemini-2.5-flash'
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_api_key}"
+                # Remove 'models/' prefix if the user typed it manually
+                model_name = engine.replace("models/", "")
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
                 
                 parts = [{"text": prompt}]
                 if image_base64:
@@ -107,7 +117,6 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                     ]
                 }
                 
-                # Strict timeout, bypassing the slow SDK retries! Give more time for vision tasks.
                 response = http_session.post(url, json=payload, timeout=60 if image_base64 else 5)
                 response.raise_for_status()
                 data = response.json()
@@ -126,29 +135,20 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                 error_msg = str(e)
                 logging.error(f"Generation error: {error_msg}")
                 if "429" in error_msg or "Quota exceeded" in error_msg or "Too Many Requests" in error_msg:
-                    if not openrouter_api_key:
-                        return "🚨 FATAL ERROR: Google API Rate Limit Reached! (If you are using 'Gemini Pro' on a free key, you are limited to 2 requests/min. Switch to 'Gemini 2.5 Flash' to fix this. Otherwise, your daily limit is exhausted.)"
-                    
-                    # Seamless fallback to OpenRouter
-                    fallback_answer = generate_interview_answer(resume_text, job_description, question_text, "Gemini Flash (OpenRouter)", image_base64, custom_qa)
+                    # If Google rate limits, fallback to OpenRouter's Gemini flash if available
+                    fallback_key = openrouter_api_key or gemini_api_key
+                    if not fallback_key:
+                        return "🚨 FATAL ERROR: Google API Rate Limit Reached! Your daily quota is exhausted."
+                    fallback_answer = generate_interview_answer(resume_text, job_description, question_text, "google/gemini-flash-1.5", image_base64, custom_qa)
                     return "⚠️ [Google Limit Reached. Auto-switched to OpenRouter]\n\n" + fallback_answer
                 return "An internal error occurred while generating the answer. Please check security logs."
             
         else: # OpenRouter
-            if not openrouter_api_key:
-                return "Error: No OPENROUTER_API_KEY found in .env file."
+            api_key = openrouter_api_key or gemini_api_key
+            if not api_key:
+                return "Error: No API Key provided in Settings."
                 
-            model_slug = "meta-llama/llama-3.1-8b-instruct"
-            if "Gemma" in engine:
-                model_slug = "google/gemma-2-27b-it"
-            elif "Gemini Pro" in engine:
-                model_slug = "google/gemini-pro-1.5"
-            elif "Gemini Flash" in engine:
-                model_slug = "google/gemini-flash-1.5"
-            elif "GPT-3.5" in engine:
-                model_slug = "openai/gpt-3.5-turbo"
-            elif "Claude 3.5" in engine:
-                model_slug = "anthropic/claude-3.5-sonnet"
+            model_slug = engine
                 
             content_payload = [{"type": "text", "text": prompt}]
             if image_base64:

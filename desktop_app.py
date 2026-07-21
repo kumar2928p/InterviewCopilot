@@ -44,12 +44,17 @@ class InterviewCopilotOverlay(ctk.CTk):
         header_frame.grid(row=0, column=0, padx=15, pady=(15, 5), sticky="ew")
         ctk.CTkLabel(header_frame, text="🤖 AI Engine:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=5)
         
-        self.engine_var = ctk.StringVar(value="Gemini Pro (OpenRouter)")
+        self.engine_var = ctk.StringVar(value="gemini-3.5-flash")
         self.engine_dropdown = ctk.CTkComboBox(header_frame, variable=self.engine_var, values=[
-            "Gemini 2.5 Flash (Google Free Tier)",
-            "Gemini Pro (Google Paid Key)",
-            "Gemini Flash (OpenRouter)", "Gemini Pro (OpenRouter)", 
-            "Llama 3.1", "Gemma 27B", "GPT-3.5 Turbo", "Claude 3.5 Sonnet"
+            "gemini-3.5-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+            "gemini-2.0-flash",
+            "google/gemini-flash-1.5",
+            "meta-llama/llama-3.1-8b-instruct",
+            "openai/gpt-4o-mini",
+            "anthropic/claude-3.5-sonnet"
         ], width=260, dropdown_font=ctk.CTkFont(size=12))
         self.engine_dropdown.pack(side="right", fill="x", expand=True, padx=5)
         
