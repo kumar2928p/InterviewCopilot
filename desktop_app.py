@@ -42,7 +42,7 @@ class InterviewCopilotOverlay(ctk.CTk):
         # 1. Header
         header_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="transparent")
         header_frame.grid(row=0, column=0, padx=15, pady=(15, 5), sticky="ew")
-        ctk.CTkLabel(header_frame, text="🤖 AI Engine:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=5)
+        ctk.CTkLabel(header_frame, text="🤖 Model Name:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=5)
         
         self.engine_var = ctk.StringVar(value="gemini-3.5-flash")
         self.engine_dropdown = ctk.CTkComboBox(header_frame, variable=self.engine_var, values=[
@@ -140,7 +140,11 @@ class InterviewCopilotOverlay(ctk.CTk):
         qa_window = ctk.CTkToplevel(self)
         qa_window.title("Custom Q&A Cheat Sheet")
         qa_window.geometry("420x500")
+        
+        qa_window.transient(self)
+        qa_window.grab_set()
         qa_window.attributes('-topmost', True)
+        qa_window.focus_force()
         
         ctk.CTkLabel(qa_window, text="📝 Pre-define answers for expected questions", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(15, 5))
         ctk.CTkLabel(qa_window, text="If the interviewer asks a matching question,\nthe AI will automatically use your provided answer.", text_color="gray").pack()
@@ -161,7 +165,11 @@ class InterviewCopilotOverlay(ctk.CTk):
         settings_win = ctk.CTkToplevel(self)
         settings_win.title("API Key Settings")
         settings_win.geometry("400x300")
+        
+        settings_win.transient(self)
+        settings_win.grab_set()
         settings_win.attributes('-topmost', True)
+        settings_win.focus_force()
         
         ctk.CTkLabel(settings_win, text="🔑 API Settings", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(15, 10))
         
