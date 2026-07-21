@@ -28,7 +28,7 @@ class InterviewCopilotOverlay(ctk.CTk):
         self.attributes('-topmost', True) 
         
         # --- HIDE FROM TASKBAR ---
-        self.attributes('-toolwindow', True)
+        # self.attributes('-toolwindow', True) # Disabled so user can minimize the window
         
         # --- Make window INVISIBLE to screen capture ---
         self.update()
@@ -155,30 +155,30 @@ class InterviewCopilotOverlay(ctk.CTk):
     def open_settings_window(self):
         settings_win = ctk.CTkToplevel(self)
         settings_win.title("API Key Settings")
-        settings_win.geometry("400x300")
+        settings_win.geometry("400x200")
         settings_win.attributes('-topmost', True)
         
-        ctk.CTkLabel(settings_win, text="🔑 API Keys", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(15, 10))
+        ctk.CTkLabel(settings_win, text="🔑 API Key", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(15, 10))
         
-        ctk.CTkLabel(settings_win, text="Gemini API Key:", font=ctk.CTkFont(size=12)).pack(anchor="w", padx=20)
-        gemini_entry = ctk.CTkEntry(settings_win, width=360, show="*")
-        gemini_entry.pack(padx=20, pady=(0, 10))
-        gemini_entry.insert(0, os.environ.get("GEMINI_API_KEY", ""))
+        ctk.CTkLabel(settings_win, text="Enter your API Key:", font=ctk.CTkFont(size=12)).pack(anchor="w", padx=20)
+        api_entry = ctk.CTkEntry(settings_win, width=360, show="*")
+        api_entry.pack(padx=20, pady=(0, 15))
         
-        ctk.CTkLabel(settings_win, text="OpenRouter API Key:", font=ctk.CTkFont(size=12)).pack(anchor="w", padx=20)
-        or_entry = ctk.CTkEntry(settings_win, width=360, show="*")
-        or_entry.pack(padx=20, pady=(0, 15))
-        or_entry.insert(0, os.environ.get("OPENROUTER_API_KEY", ""))
+        # Load existing key (try Gemini first, then OpenRouter)
+        existing_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("OPENROUTER_API_KEY", "")
+        api_entry.insert(0, existing_key)
         
         def save_keys():
-            os.environ["GEMINI_API_KEY"] = gemini_entry.get().strip()
-            os.environ["OPENROUTER_API_KEY"] = or_entry.get().strip()
+            key_val = api_entry.get().strip()
+            # Save the single key to both variables so it works for whichever model they choose
+            os.environ["GEMINI_API_KEY"] = key_val
+            os.environ["OPENROUTER_API_KEY"] = key_val
             env_path = os.path.join(os.path.dirname(__file__), ".env")
             with open(env_path, "w") as f:
-                f.write(f'GEMINI_API_KEY="{gemini_entry.get().strip()}"\nOPENROUTER_API_KEY="{or_entry.get().strip()}"\n')
+                f.write(f'GEMINI_API_KEY="{key_val}"\nOPENROUTER_API_KEY="{key_val}"\n')
             settings_win.destroy()
             
-        ctk.CTkButton(settings_win, text="Save Keys", command=save_keys, fg_color="#4caf50", hover_color="#388e3c").pack(pady=10)
+        ctk.CTkButton(settings_win, text="Save Key", command=save_keys, fg_color="#4caf50", hover_color="#388e3c").pack(pady=10)
 
     def trigger_screen_capture(self):
         self.after(0, self._process_screen_capture)
