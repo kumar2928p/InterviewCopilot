@@ -76,20 +76,43 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
         The user has provided a Custom Q&A Cheat Sheet below. 
         If the interviewer's transcribed question matches or semantically aligns with ANY of the predefined questions in the cheat sheet, you MUST use the predefined answer as the core of your response. 
         
-        Custom Q&A Cheat Sheet:
-        {custom_qa}
-        """
-    
     try:
-        gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
-        openrouter_api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        api_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("OPENROUTER_API_KEY", "")
+        custom_api_url = os.environ.get("CUSTOM_API_URL", "").strip()
         
+        # 🌟 NEW UNIVERSAL ROUTING: If the user provides a custom URL, send standard payload there!
+        if custom_api_url:
+            if not custom_api_url.endswith("/chat/completions"):
+                custom_api_url = custom_api_url.rstrip("/") + "/chat/completions"
+                
+            content_payload = [{"type": "text", "text": prompt}]
+            if image_base64:
+                content_payload.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
+                })
+                
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+                
+            response = http_session.post(
+                url=custom_api_url,
+                headers=headers,
+                json={"model": engine, "messages": [{"role": "user", "content": content_payload}]},
+                timeout=60 if image_base64 else 5
+            )
+            response.raise_for_status()
+            data = response.json()
+            try:
+                return redact_pii(data['choices'][0]['message']['content'])
+            except (KeyError, IndexError):
+                return "⚠️ API Error: Could not parse response from Custom URL."
+
         # Smart Routing: OpenRouter models always have a slash (e.g., 'google/gemini-flash', 'openai/gpt-4o')
         is_openrouter = "/" in engine
         
         if not is_openrouter:
-            # Fallback: if they pasted their Google key into the single API box, grab whichever is available
-            api_key = gemini_api_key or openrouter_api_key
             if not api_key:
                 return "Error: No API Key provided in Settings."
                 
@@ -135,16 +158,13 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                 error_msg = str(e)
                 logging.error(f"Generation error: {error_msg}")
                 if "429" in error_msg or "Quota exceeded" in error_msg or "Too Many Requests" in error_msg:
-                    # If Google rate limits, fallback to OpenRouter's Gemini flash if available
-                    fallback_key = openrouter_api_key or gemini_api_key
-                    if not fallback_key:
+                    if not api_key:
                         return "🚨 FATAL ERROR: Google API Rate Limit Reached! Your daily quota is exhausted."
                     fallback_answer = generate_interview_answer(resume_text, job_description, question_text, "google/gemini-flash-1.5", image_base64, custom_qa)
                     return "⚠️ [Google Limit Reached. Auto-switched to OpenRouter]\n\n" + fallback_answer
                 return "An internal error occurred while generating the answer. Please check security logs."
             
         else: # OpenRouter
-            api_key = openrouter_api_key or gemini_api_key
             if not api_key:
                 return "Error: No API Key provided in Settings."
                 

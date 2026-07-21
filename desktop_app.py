@@ -160,30 +160,39 @@ class InterviewCopilotOverlay(ctk.CTk):
     def open_settings_window(self):
         settings_win = ctk.CTkToplevel(self)
         settings_win.title("API Key Settings")
-        settings_win.geometry("400x200")
+        settings_win.geometry("400x300")
         settings_win.attributes('-topmost', True)
         
-        ctk.CTkLabel(settings_win, text="🔑 API Key", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(15, 10))
+        ctk.CTkLabel(settings_win, text="🔑 API Settings", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(15, 10))
         
         ctk.CTkLabel(settings_win, text="Enter your API Key:", font=ctk.CTkFont(size=12)).pack(anchor="w", padx=20)
         api_entry = ctk.CTkEntry(settings_win, width=360, show="*")
-        api_entry.pack(padx=20, pady=(0, 15))
+        api_entry.pack(padx=20, pady=(0, 10))
         
-        # Load existing key (try Gemini first, then OpenRouter)
+        # Load existing key
         existing_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("OPENROUTER_API_KEY", "")
         api_entry.insert(0, existing_key)
         
+        ctk.CTkLabel(settings_win, text="🌐 Custom API Endpoint URL (Optional):", font=ctk.CTkFont(size=12)).pack(anchor="w", padx=20)
+        ctk.CTkLabel(settings_win, text="e.g. https://api.openai.com/v1", font=ctk.CTkFont(size=10), text_color="gray").pack(anchor="w", padx=20)
+        url_entry = ctk.CTkEntry(settings_win, width=360)
+        url_entry.pack(padx=20, pady=(0, 15))
+        url_entry.insert(0, os.environ.get("CUSTOM_API_URL", ""))
+        
         def save_keys():
             key_val = api_entry.get().strip()
-            # Save the single key to both variables so it works for whichever model they choose
+            url_val = url_entry.get().strip()
+            
             os.environ["GEMINI_API_KEY"] = key_val
             os.environ["OPENROUTER_API_KEY"] = key_val
+            os.environ["CUSTOM_API_URL"] = url_val
+            
             env_path = os.path.join(os.path.dirname(__file__), ".env")
             with open(env_path, "w") as f:
-                f.write(f'GEMINI_API_KEY="{key_val}"\nOPENROUTER_API_KEY="{key_val}"\n')
+                f.write(f'GEMINI_API_KEY="{key_val}"\nOPENROUTER_API_KEY="{key_val}"\nCUSTOM_API_URL="{url_val}"\n')
             settings_win.destroy()
             
-        ctk.CTkButton(settings_win, text="Save Key", command=save_keys, fg_color="#4caf50", hover_color="#388e3c").pack(pady=10)
+        ctk.CTkButton(settings_win, text="Save Settings", command=save_keys, fg_color="#4caf50", hover_color="#388e3c").pack(pady=10)
 
     def trigger_screen_capture(self):
         self.after(0, self._process_screen_capture)
