@@ -1,0 +1,6 @@
+# Security
+.env
+model/
+model.zip
+__pycache__/
+*.pyc
