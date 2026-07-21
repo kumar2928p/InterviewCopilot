@@ -76,6 +76,10 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
         The user has provided a Custom Q&A Cheat Sheet below. 
         If the interviewer's transcribed question matches or semantically aligns with ANY of the predefined questions in the cheat sheet, you MUST use the predefined answer as the core of your response. 
         
+        Custom Q&A Cheat Sheet:
+        {custom_qa}
+        """
+        
     try:
         api_key = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("OPENROUTER_API_KEY", "")
         custom_api_url = os.environ.get("CUSTOM_API_URL", "").strip()
