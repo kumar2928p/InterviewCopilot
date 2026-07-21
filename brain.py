@@ -105,7 +105,11 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                 json={"model": engine, "messages": [{"role": "user", "content": content_payload}]},
                 timeout=60 if image_base64 else 5
             )
-            response.raise_for_status()
+            if not response.ok:
+                try: err_msg = response.json().get("error", {}).get("message", response.text)
+                except: err_msg = response.text
+                return f"⚠️ Custom API Error ({response.status_code}): {err_msg}"
+                
             data = response.json()
             try:
                 return redact_pii(data['choices'][0]['message']['content'])
@@ -119,59 +123,51 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
             if not api_key:
                 return "Error: No API Key provided in Settings."
                 
+            # Remove 'models/' prefix if the user typed it manually
+            model_name = engine.replace("models/", "")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            
+            parts = [{"text": prompt}]
+            if image_base64:
+                parts.append({
+                    "inlineData": {
+                        "mimeType": "image/jpeg",
+                        "data": image_base64
+                    }
+                })
+            
+            payload = {
+                "contents": [{"parts": parts}],
+                "safetySettings": [
+                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}
+                ]
+            }
+            
             try:
-                # Remove 'models/' prefix if the user typed it manually
-                model_name = engine.replace("models/", "")
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-                
-                parts = [{"text": prompt}]
-                if image_base64:
-                    parts.append({
-                        "inlineData": {
-                            "mimeType": "image/jpeg",
-                            "data": image_base64
-                        }
-                    })
-                
-                payload = {
-                    "contents": [{"parts": parts}],
-                    "safetySettings": [
-                        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}
-                    ]
-                }
-                
                 response = http_session.post(url, json=payload, timeout=60 if image_base64 else 5)
-                response.raise_for_status()
+                if not response.ok:
+                    try: err_msg = response.json().get("error", {}).get("message", response.text)
+                    except: err_msg = response.text
+                    
+                    if response.status_code == 429 or "Quota" in err_msg:
+                        fallback_answer = generate_interview_answer(resume_text, job_description, question_text, "google/gemini-flash-1.5", image_base64, custom_qa)
+                        return "⚠️ [Google Limit Reached. Auto-switched to OpenRouter]\n\n" + fallback_answer
+                    
+                    return f"⚠️ Google API Error ({response.status_code}): {err_msg}"
+                    
                 data = response.json()
-                
-                try:
-                    answer_text = data['candidates'][0]['content']['parts'][0]['text']
-                    return redact_pii(answer_text)
-                except (KeyError, IndexError):
-                    error_reason = "Unknown error"
-                    if 'candidates' in data and len(data['candidates']) > 0:
-                        candidate = data['candidates'][0]
-                        if 'finishReason' in candidate:
-                            error_reason = f"Response blocked due to finishReason: {candidate['finishReason']}"
-                    return f"⚠️ API Error: Could not parse response. ({error_reason})"
+                answer_text = data['candidates'][0]['content']['parts'][0]['text']
+                return redact_pii(answer_text)
             except Exception as e:
-                error_msg = str(e)
-                logging.error(f"Generation error: {error_msg}")
-                if "429" in error_msg or "Quota exceeded" in error_msg or "Too Many Requests" in error_msg:
-                    if not api_key:
-                        return "🚨 FATAL ERROR: Google API Rate Limit Reached! Your daily quota is exhausted."
-                    fallback_answer = generate_interview_answer(resume_text, job_description, question_text, "google/gemini-flash-1.5", image_base64, custom_qa)
-                    return "⚠️ [Google Limit Reached. Auto-switched to OpenRouter]\n\n" + fallback_answer
-                return "An internal error occurred while generating the answer. Please check security logs."
+                logging.error(f"Generation error: {str(e)}")
+                return f"⚠️ Internal Error: {str(e)}"
             
         else: # OpenRouter
             if not api_key:
                 return "Error: No API Key provided in Settings."
-                
-            model_slug = engine
                 
             content_payload = [{"type": "text", "text": prompt}]
             if image_base64:
@@ -182,28 +178,33 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                     }
                 })
                 
-            response = http_session.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openrouter_api_key}",
-                    "HTTP-Referer": "http://localhost",
-                    "X-Title": "Interview Copilot",
-                },
-                json={
-                    "model": model_slug,
-                    "messages": [
-                        {"role": "user", "content": content_payload}
-                    ]
-                },
-                timeout=60 if image_base64 else 5
-            )
-            response.raise_for_status()
-            data = response.json()
             try:
+                response = http_session.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "HTTP-Referer": "http://localhost",
+                        "X-Title": "Interview Copilot",
+                    },
+                    json={
+                        "model": engine,
+                        "messages": [
+                            {"role": "user", "content": content_payload}
+                        ]
+                    },
+                    timeout=60 if image_base64 else 5
+                )
+                if not response.ok:
+                    try: err_msg = response.json().get("error", {}).get("message", response.text)
+                    except: err_msg = response.text
+                    return f"⚠️ OpenRouter Error ({response.status_code}): {err_msg}"
+                    
+                data = response.json()
                 return data['choices'][0]['message']['content']
-            except (KeyError, IndexError):
-                return f"⚠️ OpenRouter API Error: Could not parse response. Check if model {model_slug} supports this request."
+            except Exception as e:
+                logging.error(f"OpenRouter Generation error: {str(e)}")
+                return f"⚠️ Internal Error: {str(e)}"
+                
     except Exception as e:
-        # Security Layer: Prevent Information Leakage by masking raw exception
-        logging.error(f"Generation error: {str(e)}")
-        return "An internal error occurred while generating the answer. Please check security logs."
+        logging.error(f"Fatal error in brain.py: {str(e)}")
+        return "⚠️ A fatal internal error occurred."
