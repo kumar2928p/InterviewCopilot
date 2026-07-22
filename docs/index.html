@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Copilot | Your Stealth AI Assistant</title>
+    <meta name="description" content="Ace every interview with Interview Copilot. A powerful desktop app that secretly listens to your meetings and provides real-time AI answers without your microphone.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glow-orb top-left"></div>
+    <div class="glow-orb bottom-right"></div>
+
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🤖</span> Interview Copilot
+        </div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="https://github.com/kumar2928p/InterviewCopilot" target="_blank" class="github-link">GitHub</a>
+        </div>
+    </nav>
+
+    <main class="hero">
+        <div class="hero-content">
+            <h1 class="animate-up">Ace Every Interview.<br><span class="gradient-text">Zero Latency.</span></h1>
+            <p class="hero-subtitle animate-up delay-1">The ultimate stealth desktop AI that listens to your computer's speakers and provides real-time answers to technical questions.</p>
+            
+            <div class="cta-group animate-up delay-2">
+                <a href="https://github.com/kumar2928p/InterviewCopilot/archive/refs/heads/main.zip" class="btn primary-btn">
+                    Download App <span class="arrow">→</span>
+                </a>
+                <a href="https://github.com/kumar2928p/InterviewCopilot" class="btn secondary-btn" target="_blank">
+                    View Source Code
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-visual animate-up delay-3">
+            <div class="glass-panel app-preview">
+                <div class="window-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <span class="window-title">Interview Copilot.exe</span>
+                </div>
+                <div class="app-content">
+                    <div class="status-bar">
+                        <span class="status-indicator active"></span>
+                        Listening to speakers...
+                    </div>
+                    <div class="transcription-box">
+                        <span class="fade-text">...how would you design a distributed database system to handle</span> <span class="highlight">high read throughput?</span>
+                    </div>
+                    <div class="ai-response-box">
+                        <div class="badge">Gemini 1.5 Pro</div>
+                        <h3>Recommended Answer:</h3>
+                        <p>I would implement a distributed cache layer using Redis or Memcached in front of the primary database. For the database itself, I'd use a NoSQL solution like Cassandra for horizontal scalability and fast reads, while implementing read replicas to distribute the query load...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section id="features" class="features-section">
+        <h2 class="section-title">Powered by Cutting-Edge AI</h2>
+        <div class="features-grid">
+            <div class="feature-card glass-panel">
+                <div class="feature-icon">🤫</div>
+                <h3>Stealth Audio Engine</h3>
+                <p>Completely ignores your microphone. It directly intercepts internal WASAPI desktop audio to only listen to the interviewer via Zoom or Teams.</p>
+            </div>
+            <div class="feature-card glass-panel">
+                <div class="feature-icon">⚡</div>
+                <h3>Zero Latency</h3>
+                <p>Uses a highly-optimized offline Vosk voice model to transcribe speech instantly without waiting for the sentence to finish.</p>
+            </div>
+            <div class="feature-card glass-panel">
+                <div class="feature-icon">🧠</div>
+                <h3>Gemini 1.5 Integration</h3>
+                <p>Context-aware AI answers powered by Google's fastest models, utilizing 30-second connection pooling for uninterrupted long sessions.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content glass-panel">
+            <p>Built for developers by <a href="https://github.com/kumar2928p" target="_blank">kumar2928p</a>.</p>
+            <p class="disclaimer">Please use responsibly and ethically.</p>
+        </div>
+    </footer>
+</body>
+</html>
