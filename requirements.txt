@@ -2,6 +2,6 @@ customtkinter
 pillow
 keyboard
 vosk
-sounddevice
+soundcard
 requests
 python-dotenv
