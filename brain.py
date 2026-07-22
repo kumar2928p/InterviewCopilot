@@ -102,18 +102,24 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
                 
-            response = http_session.post(
-                url=custom_api_url,
-                headers=headers,
-                json={"model": engine, "messages": [{"role": "user", "content": content_payload}]},
-                timeout=60 if image_base64 else 5
-            )
-            if not response.ok:
-                try: err_msg = response.json().get("error", {}).get("message", response.text)
-                except: err_msg = response.text
-                return f"⚠️ Custom API Error ({response.status_code}): {err_msg}"
+            try:
+                response = http_session.post(
+                    url=custom_api_url,
+                    headers=headers,
+                    json={"model": engine, "messages": [{"role": "user", "content": content_payload}]},
+                    timeout=60 if image_base64 else 30
+                )
+                if not response.ok:
+                    try: err_msg = response.json().get("error", {}).get("message", response.text)
+                    except: err_msg = response.text
+                    return f"⚠️ Custom API Error ({response.status_code}): {err_msg}"
+            except Exception as e:
+                return f"⚠️ Custom API Connection Error: Could not connect to {custom_api_url}. ({str(e)})"
                 
-            data = response.json()
+            try:
+                data = response.json()
+            except Exception as e:
+                return f"⚠️ Custom API Error: The server returned an invalid response (not JSON). Response: {response.text[:100]}"
             try:
                 return redact_pii(data['choices'][0]['message']['content'])
             except (KeyError, IndexError):
@@ -150,7 +156,7 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
             }
             
             try:
-                response = http_session.post(url, json=payload, timeout=60 if image_base64 else 5)
+                response = http_session.post(url, json=payload, timeout=60 if image_base64 else 30)
                 if not response.ok:
                     try: err_msg = response.json().get("error", {}).get("message", response.text)
                     except: err_msg = response.text
@@ -195,7 +201,7 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                             {"role": "user", "content": content_payload}
                         ]
                     },
-                    timeout=60 if image_base64 else 5
+                    timeout=60 if image_base64 else 30
                 )
                 if not response.ok:
                     try: err_msg = response.json().get("error", {}).get("message", response.text)
@@ -210,4 +216,4 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
                 
     except Exception as e:
         logging.error(f"Fatal error in brain.py: {str(e)}")
-        return "⚠️ A fatal internal error occurred."
+        return f"⚠️ A fatal internal error occurred: {str(e)}"
