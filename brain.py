@@ -85,6 +85,9 @@ def generate_interview_answer(resume_text, job_description, question_text, engin
         
         # 🌟 NEW UNIVERSAL ROUTING: If the user provides a custom URL, send standard payload there!
         if custom_api_url:
+            if not custom_api_url.startswith("http"):
+                return "⚠️ Settings Error: Your Custom API URL must start with http:// or https://"
+                
             if not custom_api_url.endswith("/chat/completions"):
                 custom_api_url = custom_api_url.rstrip("/") + "/chat/completions"
                 

@@ -268,7 +268,36 @@ class InterviewCopilotOverlay(ctk.CTk):
             self.update()
             self.transcriber = AudioTranscriber()
         self.transcript_label.configure(text="[Listening to your speakers...]")
+        
+        # Initialize history BEFORE the blocking loop!
+        if not hasattr(self, 'transcription_history'):
+            self.transcription_history = ""
+            
         self.transcriber.listen_continuous(self.on_transcribe)
+
+    def update_transcription(self, text, is_final):
+        self.after(0, self._update_transcription_ui, text, is_final)
+
+    def _update_transcription_ui(self, text, is_final):
+        if is_final:
+            # User finished a thought, append to permanent history
+            self.transcription_textbox.delete("1.0", "end")
+            self.transcription_history += text + " "
+            
+            # keep history short
+            if len(self.transcription_history) > 300:
+                self.transcription_history = "..." + self.transcription_history[-297:]
+                
+            self.transcription_textbox.insert("end", self.transcription_history)
+            self.transcription_textbox.see("end")
+            
+            # Auto-generate answer
+            threading.Thread(target=self.generate_answer_background, args=(text,), daemon=True).start()
+        else:
+            # Show partials dynamically so it feels instant
+            self.transcription_textbox.delete("1.0", "end")
+            self.transcription_textbox.insert("end", self.transcription_history + text + "...")
+            self.transcription_textbox.see("end")
 
     def on_transcribe(self, text, is_final):
         self.after(0, self._handle_transcript, text, is_final)
